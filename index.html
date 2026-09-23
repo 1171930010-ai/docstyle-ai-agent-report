@@ -68,6 +68,7 @@
   </div>
 </section>
 <script>
+  document.querySelectorAll('img[src^="/assets/"]').forEach(image=>image.src=image.getAttribute('src').slice(1));
   const presentation=document.getElementById('presentationDeck'),stage=presentation.querySelector('.presentation-stage'),sourceMain=document.querySelector('main'),sourceSections=[...sourceMain.children].filter(section=>section.matches('section')),controls=presentation.querySelector('.deck-controls'),dots=presentation.querySelector('#deckDots'),count=presentation.querySelector('#presentationProgress');let current=0;
   const sourceSlides=sourceSections.map((section,index)=>{const slide=document.createElement('article');slide.className='source-deck-slide';slide.setAttribute('aria-label',`第 ${index+1} 页`);slide.append(section);stage.insertBefore(slide,controls);return slide});
   const slides=sourceSlides;
