@@ -19,6 +19,17 @@
     body>nav,body>main,body>.footer,#presentation{display:none!important}
     .presentation-shell{position:fixed;inset:0;z-index:80;display:block}
     .presentation-shell .deck-close{display:none}
+    /* Reflow the original long-page sections into a slide deck without removing their content. */
+    .presentation-stage>.deck-slide{display:none!important}
+    .source-deck-slide{display:none;height:100%;padding:24px clamp(22px,5vw,80px) 74px;align-items:center;justify-content:center;overflow:hidden}
+    .source-deck-slide.active{display:flex}
+    .source-deck-slide>.hero,.source-deck-slide>.section,.source-deck-slide>.thesis{width:min(1160px,100%);margin:auto;border-top:0;padding:0;transform-origin:center center}
+    .source-deck-slide>.hero{border-radius:22px;overflow:hidden;padding:36px 0;background:radial-gradient(60% 70% at 85% 25%,#e8f7f8 0,transparent 70%),linear-gradient(180deg,#fff 10%,#f7fbff)}
+    .source-deck-slide>.thesis{border-radius:22px;padding:42px 0}
+    .source-deck-slide .section-head{margin-bottom:24px}
+    .source-deck-slide .section .arch-img{max-height:42vh;object-fit:contain}
+    .source-deck-slide .trace{max-height:54vh}.source-deck-slide .trace-lines{min-height:220px}
+    @media(max-width:620px){.source-deck-slide{padding:16px 16px 70px}.source-deck-slide>.hero{padding:20px 0}.source-deck-slide>.thesis{padding:26px 0}}
   </style>
 </head>
 <body>
@@ -57,12 +68,17 @@
   </div>
 </section>
 <script>
-  const presentation=document.getElementById('presentationDeck'),slides=[...presentation.querySelectorAll('.deck-slide')],count=presentation.querySelector('#presentationProgress'),dots=presentation.querySelector('#deckDots');let current=0;
+  const presentation=document.getElementById('presentationDeck'),stage=presentation.querySelector('.presentation-stage'),sourceMain=document.querySelector('main'),sourceSections=[...sourceMain.children].filter(section=>section.matches('section')),controls=presentation.querySelector('.deck-controls'),dots=presentation.querySelector('#deckDots'),count=presentation.querySelector('#presentationProgress');let current=0;
+  const sourceSlides=sourceSections.map((section,index)=>{const slide=document.createElement('article');slide.className='source-deck-slide';slide.setAttribute('aria-label',`第 ${index+1} 页`);slide.append(section);stage.insertBefore(slide,controls);return slide});
+  const slides=sourceSlides;
   slides.forEach((_,i)=>{const dot=document.createElement('button');dot.className='deck-dot';dot.setAttribute('aria-label',`跳转至第 ${i+1} 页`);dot.onclick=()=>showSlide(i);dots.append(dot)});
-  function showSlide(i){current=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle('active',n===current));[...dots.children].forEach((dot,n)=>dot.classList.toggle('active',n===current));count.textContent=String(current+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0')}
+  function fitActiveSlide(){const content=slides[current]?.firstElementChild;if(!content)return;content.style.zoom='1';const width=Math.max(1,stage.clientWidth-44),height=Math.max(1,stage.clientHeight-156),scale=Math.min(1,width/content.scrollWidth,height/content.scrollHeight);content.style.zoom=String(scale)}
+  function showSlide(i){current=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle('active',n===current));[...dots.children].forEach((dot,n)=>dot.classList.toggle('active',n===current));count.textContent=String(current+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');requestAnimationFrame(fitActiveSlide)}
   showSlide(0);
   presentation.querySelector('#nextSlide').onclick=()=>showSlide(current+1);presentation.querySelector('#prevSlide').onclick=()=>showSlide(current-1);
   document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();showSlide(current+1)}if(e.key==='ArrowLeft'){e.preventDefault();showSlide(current-1)}});
+  window.addEventListener('resize',fitActiveSlide);
+  presentation.querySelectorAll('img').forEach(image=>{image.addEventListener('load',fitActiveSlide);if(image.complete)fitActiveSlide()});
   document.querySelectorAll('.agent').forEach(a=>a.onclick=()=>{document.querySelectorAll('.agent').forEach(x=>x.classList.remove('active'));a.classList.add('active');document.getElementById('agentDetail').textContent=a.dataset.detail});
   document.querySelectorAll('.skill').forEach(s=>s.onclick=()=>s.classList.toggle('active'));
   document.getElementById('runTrace').onclick=()=>{const lines=[...document.querySelectorAll('.trace-line')];lines.forEach(x=>x.style.display='none');lines.forEach((line,i)=>setTimeout(()=>{line.style.display='block';line.scrollIntoView({block:'nearest',behavior:'smooth'})},i*520))};
